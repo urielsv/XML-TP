@@ -13,8 +13,8 @@ EOF
 
 # Clean data and out files
 if [ "$1" == "clean" ]; then
-    rm -rf {data,out}/*.{xml,txt}
-    echo "Deleted data and out files"
+    rm -rf {data,out}/*.{xml,txt,md}
+    echo -e "\033[32mDeleted data and out files\033[0m"
     exit 0
 fi
 

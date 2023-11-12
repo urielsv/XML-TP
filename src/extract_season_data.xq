@@ -87,16 +87,15 @@ declare function local:competitors-xml() as node()* {
 (:~~~~~~~~~~~~~~:)
 
 declare function local:create-xml() {
-    
     <season_data>
         {local:season-xml()}
         <stages>
             {local:stages-xml()}
         </stages>
 
-        <competititors>
+        <competitors>
             {local:competitors-xml()}
-        </competititors>
+        </competitors>
     </season_data>
 };
 

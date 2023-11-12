@@ -1,6 +1,9 @@
 #!/bin/bash
+
+
 if [ "$1" == "clean" ]; then
-    rm -rf *.{xml,txt}
+    rm -rf {data,out}/*.{xml,txt}
+    echo "Deleted data and out files"
     exit 0
 fi
 
@@ -26,12 +29,22 @@ if [[ -z $NAME_PREFIX ]] || !([[ $NAME_PREFIX =~ ^[a-zA-Z\ ]+$ ]]); then
 fi
 
 # temp -> hidden
-API_KEY="kykfkexbjqyehenht25wjw3f"
-# Generamos los xml con los datos 
-curl http://api.sportradar.us/rugby-league/trial/v3/en/seasons.xml?api_key=${API_KEY} -o seasons.xml
-curl http://api.sportradar.us/rugby-league/trial/v3/en/seasons/sr:season:80588/info.xml?api_key=${API_KEY} -o season_info.xml
-curl http://api.sportradar.us/rugby-league/trial/v3/en/seasons/sr:season:80588/lineups.xml?api_key=${API_KEY} -o season_lineups.xml
+API_KEY=$(cat ./src/API_KEY.txt)
 
-java net.sf.saxon.Query -q:extract_season_id.xq season_prefix="$NAME_PREFIX" season_year=$YEAR -o:"season_data.txt"
-sed -i '' 's/<?xml.*?>//' season_data.txt
-# java net.sf.saxon.Query -q:extract_season_data.xq season_prefix="$NAME_PREFIX" season_year=$YEAR -o:"season_data.txt"
+# Generamos los xml con los datos 
+curl -s http://api.sportradar.us/rugby-league/trial/v3/en/seasons.xml?api_key=${API_KEY} -o data/seasons.xml
+curl -s http://api.sportradar.us/rugby-league/trial/v3/en/seasons/sr:season:80588/info.xml?api_key=${API_KEY} -o data/season_info.xml
+curl -s http://api.sportradar.us/rugby-league/trial/v3/en/seasons/sr:season:80588/lineups.xml?api_key=${API_KEY} -o data/season_lineups.xml
+
+# Query 1
+java net.sf.saxon.Query -q:src/extract_season_id.xq season_prefix="$NAME_PREFIX" season_year=$YEAR -o:out/season_data.txt
+sed -i '' 's/<?xml.*?>//' out/season_data.txt
+
+
+# Query 2 
+java net.sf.saxon.Query -q:src/extract_season_data.xq -o:out/season_data.xml
+
+# Query 3
+java net.sf.saxon.Transform -s:out/season_data.xml -xsl:src/generate_markdown.xsl -o:out/markdown.md 
+
+echo "Done!"

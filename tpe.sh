@@ -1,6 +1,6 @@
 #!/bin/bash
 
-generate_error_xml() {
+function generate_error_xml() {
     local error_message=$1
 
     cat << EOF > ./out/season_data.xml
@@ -9,6 +9,17 @@ generate_error_xml() {
     <error>${error_message}</error>
 </season_data>
 EOF
+}
+
+function remove_xml_declaration() {
+    local file_path=$1
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        # macOS sed
+        sed -i '' 's/<?xml.*?>//' "$file_path"
+    else
+        # Linux sed
+        sed -i 's/<?xml.*?>//' "$file_path"
+    fi
 }
 
 # Clean data and out files
@@ -54,7 +65,7 @@ curl -s http://api.sportradar.us/rugby-league/trial/v3/en/seasons/sr:season:8058
 echo "Processing data..."
 # Query 1
 java net.sf.saxon.Query -q:src/extract_season_id.xq season_prefix="$NAME_PREFIX" season_year=$YEAR -o:out/season_data.txt
-sed -i '' 's/<?xml.*?>//' out/season_data.txt
+remove_xml_declaration "out/season_data.txt"
 echo "season_data.txt created"
 
 # Query 2 
@@ -63,7 +74,7 @@ echo "season_data.xml created"
 
 # Query 3
 java net.sf.saxon.Transform -s:out/season_data.xml -xsl:src/generate_markdown.xsl -o:out/season_page.md 
-sed -i '' 's/<?xml.*?>//' out/season_page.md
+remove_xml_declaration "out/season_page.md"
 echo "season_page.md created"
 
 echo -e "\033[32mDone!\033[0m"

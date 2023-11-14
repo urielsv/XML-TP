@@ -57,22 +57,39 @@ fi
 API_KEY=$(cat ./src/API_KEY.txt)
 
 # Download data
-echo "Downloading data..."
+echo "Downloading data for Query1"
 curl -s http://api.sportradar.us/rugby-league/trial/v3/en/seasons.xml?api_key=${API_KEY} -o data/seasons.xml
-curl -s http://api.sportradar.us/rugby-league/trial/v3/en/seasons/sr:season:80588/info.xml?api_key=${API_KEY} -o data/season_info.xml
-curl -s http://api.sportradar.us/rugby-league/trial/v3/en/seasons/sr:season:80588/lineups.xml?api_key=${API_KEY} -o data/season_lineups.xml
 
 echo "Processing data..."
+
 # Query 1
 java net.sf.saxon.Query -q:src/extract_season_id.xq season_prefix="$NAME_PREFIX" season_year=$YEAR -o:out/season_data.txt
 remove_xml_declaration "out/season_data.txt"
+SEASON=$(cat ./out/season_data.txt)
+
+if [[ $SEASON == "Error"* ]]; then
+    echo -e "\033[0;31mseason_data.txt created with error"
+    generate_error_xml "$SEASON"
+    echo "# ${SEASON}" > ./out/season_page.md
+    echo -e "\033[0;31mseason_data.xml created with error\033[0m"
+    echo -e "\033[0;31mseason_page.md created with error\033[0m"
+    echo -e "\033[0;31mError: error while generating season_data.xml\033[0m"
+    exit 1
+fi
+
 echo "season_data.txt created"
+
+# If season is valid then download and process data.
+# Downloading data for Query2
+echo "Downloading data for Query2"
+curl -s http://api.sportradar.us/rugby-league/trial/v3/en/seasons/${SEASON}/info.xml?api_key=${API_KEY} -o data/season_info.xml
+curl -s http://api.sportradar.us/rugby-league/trial/v3/en/seasons/${SEASON}/lineups.xml?api_key=${API_KEY} -o data/season_lineups.xml
 
 # Query 2 
 java net.sf.saxon.Query -q:src/extract_season_data.xq -o:out/season_data.xml
 echo "season_data.xml created"
 
-# Query 3
+# Generate Markdown for Query2
 java net.sf.saxon.Transform -s:out/season_data.xml -xsl:src/generate_markdown.xsl -o:out/season_page.md 
 remove_xml_declaration "out/season_page.md"
 echo "season_page.md created"
